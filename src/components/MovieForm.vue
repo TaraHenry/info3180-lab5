@@ -84,7 +84,7 @@
         form_data.append("description", movie.value.description);
         form_data.append("poster", poster.value);
         form_data.append("csrf_token", csrf_token.value); // Add CSRF token to form data
-    
+        
         fetch("/api/v1/movies", {
             method: "POST",
             body: form_data,
@@ -92,16 +92,17 @@
                 'X-CSRFToken': csrf_token.value
             }
         })
-        .then(response => {
-            if (!response.ok) {
-            throw new Error("Failed to save movie");
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
+            if (data.success) {
                 successMessage.value = data.message;
                 movie.value = { title: "", description: "" };
                 poster.value = null;
+                console.log("Movie saved:", data);
+            } else {
+                errors.value = data.errors || ["Failed to save movie."];
+                console.error("Backend errors:", data.errors);
+            }
         })
         .catch (err => {
         errors.value = ["An error occurred while saving the movie."];
@@ -109,81 +110,3 @@
         });
     }
 </script>
-
-    
-    // const title = ref("");
-    // const description = ref("");
-            
-
-//             function getCsrfToken() {
-//             fetch("/api/v1/csrf-token")
-//                 .then(res => {
-//                 if (!res.ok) {
-//                     throw new Error(`Failed to fetch CSRF token: ${res.status}`);
-//                 }
-//                 return res.json();
-//                 })
-//                 .then(data => {
-//                 console.log("CSRF token received");
-//                 csrf_token.value = data.csrf_token;
-//                 })
-//                 .catch(error => {
-//                 console.error("Error fetching CSRF token:", error);
-//                 errors.value = ["Failed to fetch CSRF token. Please refresh the page."];
-//                 });
-//             }
-
-//             onMounted(() => {
-//                 getCsrfToken();
-//             });
-
-//             return {
-//                 title,
-//                 description,
-//                 poster,
-//                 csrf_token,
-//                 errors,
-//                 successMessage,
-//                 handleFileUpload: (event) => {
-//                     poster.value = event.target.files[0];
-//                 },
-//                 saveMovie: () => {
-//                     errors.value = [];
-//                     successMessage.value = "";
-
-//                     let movieForm = document.getElementById('movieForm');
-//                     let form_data = new FormData(movieForm);
-
-//                     form_data.append("csrf_token", csrf_token.value);
-//                     form_data.append("title", title.value);
-//                     form_data.append("description", description.value);
-//                     form_data.append("poster", poster.value);
-
-//                     fetch("/api/v1/movies", {
-//                         method: "POST",
-//                         body: form_data,
-//                         headers: {
-//                             "X-CSRFToken": csrf_token.value,
-//                         },
-//                     })
-//                     .then((response) => response.json())
-//                     .then((data) => {
-//                         if (data.success) {
-//                             successMessage.value = "Movie saved successfully!";
-//                         } else {
-//                             errors.value = [
-//                                 { message: data.error || "Failed to save the movie." },
-//                             ];
-//                         }
-//                     })
-//                     .catch((error) => {
-//                         console.error("Fetch Error:", error);
-//                         errors.value = [
-//                             { message: "An unexpected error occurred." },
-//                         ];
-//                     });
-//                 },
-//             };
-//         },
-//     };
-// 

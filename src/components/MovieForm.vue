@@ -37,23 +37,6 @@
     
     // Reactive property for CSRF token
     const csrf_token = ref("");
-    
-    // Method to fetch CSRF token
-    const getCsrfToken = async () => {
-        try {
-        const response = await fetch("/api/v1/csrf-token");
-        const data = await response.json();
-        csrf_token.value = data.csrf_token;
-        } catch (error) {
-        console.error("Failed to fetch CSRF token:", error);
-        }
-    };
-    
-    // Fetch CSRF token when component is mounted
-    onMounted(() => {
-        getCsrfToken();
-    });
-    
     // Existing data and methods for form handling
     const movie = ref({
         title: "",
@@ -63,44 +46,68 @@
     const errors = ref([]);
     const successMessage = ref("");
     
-    const handleFileUpload = (event) => {
-        poster.value = event.target.files[0];
-    };
+    // Method to fetch CSRF token
+    function getCsrfToken() {
+        fetch("/api/v1/csrf-token")
+        .then(response => {
+            if (!response.ok) {
+            throw new Error("Failed to get CSRF token");
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            csrf_token.value = data.csrf_token;
+        })
+        .catch(err => {
+            console.error("Error fetching CSRF token", err);
+        });
+    }
     
-    const saveMovie = async () => {
+    // Fetch CSRF token when component is mounted
+    onMounted(() => {
+        getCsrfToken();
+    });
+    
+    function handleFileUpload(event) {
+        poster.value = event.target.files[0];
+    }
+    
+    function saveMovie() {
         errors.value = [];
         successMessage.value = "";
     
         const movieForm = document.getElementById('movieForm');
         const form_data = new FormData(movieForm);
-        
+
         form_data.append("title", movie.value.title);
         form_data.append("description", movie.value.description);
         form_data.append("poster", poster.value);
         form_data.append("csrf_token", csrf_token.value); // Add CSRF token to form data
     
-        try {
-        const response = await fetch("/api/v1/movies", {
+        fetch("/api/v1/movies", {
             method: "POST",
             body: form_data,
             headers: {
                 'X-CSRFToken': csrf_token.value
             }
-        });
-    
-        const data = await response.json();
-        if (response.ok) {
-            successMessage.value = data.message;
-            movie.value = { title: "", description: "" };
-            poster.value = null;
-        } else {
-            errors.value = data.errors || ["An unexpected error occurred."];
-        }
-        } catch (error) {
+        })
+        .then(response => {
+            if (!response.ok) {
+            throw new Error("Failed to save movie");
+            }
+            return response.json();
+        })
+        .then(data => {
+                successMessage.value = data.message;
+                movie.value = { title: "", description: "" };
+                poster.value = null;
+        })
+        .catch (err => {
         errors.value = ["An error occurred while saving the movie."];
-        console.error(error);
-        }
-    };
+        console.error("Error saving movies: ", err);
+        });
+    }
 </script>
 
     

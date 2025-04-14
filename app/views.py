@@ -6,11 +6,13 @@ This file creates your application.
 """
 import os
 from app import app, db
-from flask import render_template, request, jsonify, send_file
+from flask import render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-from app.models import Movie
-from app.forms import MovieForm
+from .models import Movie
+from .forms import MovieForm
 from datetime import datetime
+from flask_wtf.csrf import generate_csrf
+
 
 ###
 # Routing for your application.
@@ -36,28 +38,37 @@ def movies():
         poster.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
         # Create new movie entry
-        movie = Movie(
-            title=title,
-            description=description,
-            poster=filename,
-            created_at=datetime()
+        new_movie = Movie(
+            title = title,
+            description = description,
+            poster = filename
         )
 
         # Add and commit to database
-        db.session.add(movie)
+        db.session.add(new_movie)
         db.session.commit()
 
         # Return success response
         return jsonify({
-            "message": "Movie Successfully added",
-            "title": title,
-            "poster": filename,
-            "description": description
+            'success': True,
+            'message': 'Movie Successfully added',
+            'movie': {
+                'title': title,
+                'description': description,
+                'poster': filename
+            }
         }), 201
     else:
+        errors = form_errors(form)
         return jsonify({
-            "errors": form_errors(form)
+            'success': False,
+            'errors': errors
         }), 400
+    
+@app.route('/api/v1/csrf-token', methods=['GET'])
+def get_csrf():
+    return jsonify({'csrf_token': generate_csrf()})
+
 ###
 # The functions below should be applicable to all Flask apps.
 ###
@@ -93,6 +104,8 @@ def add_header(response):
     """
     response.headers['X-UA-Compatible'] = 'IE=Edge,chrome=1'
     response.headers['Cache-Control'] = 'public, max-age=0'
+    response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+    response.headers["Content-Type"] = "application/json"
     return response
 
 
@@ -100,3 +113,6 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
+if __name__ == '__main__':
+    app.run(debug=True)
